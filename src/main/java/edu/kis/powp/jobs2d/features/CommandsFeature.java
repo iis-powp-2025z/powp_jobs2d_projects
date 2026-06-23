@@ -1,6 +1,11 @@
 package edu.kis.powp.jobs2d.features;
 
 import edu.kis.powp.appbase.Application;
+import edu.kis.powp.jobs2d.command.catalog.CommandCatalog;
+import edu.kis.powp.jobs2d.command.catalog.FileCommandCatalogStorage;
+import edu.kis.powp.jobs2d.command.catalog.ICommandCatalogRepository;
+import edu.kis.powp.jobs2d.command.catalog.ICommandCatalogStorage;
+import edu.kis.powp.jobs2d.command.catalog.ICommandSearchEngine;
 import edu.kis.powp.jobs2d.command.gui.CommandHistoryWindow;
 import edu.kis.powp.jobs2d.command.gui.CommandManagerWindow;
 import edu.kis.powp.jobs2d.command.gui.CommandManagerWindowCommandChangeObserver;
@@ -28,21 +33,38 @@ import edu.kis.powp.jobs2d.events.SelectRunCurrentFlippedCommandOptionListener;
 import edu.kis.powp.jobs2d.events.SelectRunCurrentRotatedCommandOptionListener;
 import edu.kis.powp.jobs2d.events.SelectRunCurrentScaledDownCommandOptionListener;
 import edu.kis.powp.jobs2d.events.SelectRunCurrentScaledUpCommandOptionListener;
+import edu.kis.powp.jobs2d.command.gui.catalog.CommandCatalogWindow;
+
 
 public class CommandsFeature implements IFeature {
 
     private static CommandManager commandManager;
     private static CommandHistory commandHistory;
     private static CommandHistorySubscriber commandHistorySubscriber;
+    private static ICommandCatalogRepository commandCatalog;
+    private static ICommandSearchEngine commandSearchEngine;
+    private static ICommandCatalogStorage commandCatalogStorage;
 
     public CommandsFeature() {
+    }
+
+    public static ICommandCatalogRepository getCommandCatalog() {
+        return commandCatalog;
     }
 
     @Override
     public void setup(Application app) {
         setupCommandManager();
+        setupCommandCatalog();
         setupCommandsMenu(app);
         setupWindows(app);
+    }
+
+    private static void setupCommandCatalog() {
+        CommandCatalog catalog = new CommandCatalog();
+        commandCatalog = catalog;
+        commandSearchEngine = catalog;
+        commandCatalogStorage = new FileCommandCatalogStorage();
     }
 
     private static void setupCommandManager() {
@@ -137,6 +159,18 @@ public class CommandsFeature implements IFeature {
         CommandHistoryWindow historyWindow = new CommandHistoryWindow(CommandsFeature.getCommandHistory(),
             CommandsFeature.getDriverCommandManager());
         application.addWindowComponent("Command History", historyWindow);
+
+        CommandCatalogWindow catalogWindow = new CommandCatalogWindow(
+                commandCatalog,
+                commandSearchEngine,
+                getDriverCommandManager(),
+                commandCatalogStorage
+        );
+        CommandsFeature.getDriverCommandManager().getChangePublisher().addSubscriber(catalogWindow);
+        commandCatalog.getChangePublisher().addSubscriber(catalogWindow);
+
+        application.addWindowComponent("Command Catalog", catalogWindow);
+
     }
 
     /**
